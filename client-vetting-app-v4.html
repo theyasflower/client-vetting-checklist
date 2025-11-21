@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client Pre-Vetting Checklist | TheMinCave</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Bricolage Grotesque', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        .category-section {
+            scroll-margin-top: 100px;
+        }
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white !important; }
+            .print-break { page-break-after: always; }
+        }
+        /* Custom brand colors */
+        .bg-brand-primary { background-color: #afa5fe; }
+        .bg-brand-yellow { background-color: #fadf0a; }
+        .bg-brand-green { background-color: #98de6c; }
+        .text-brand-primary { color: #afa5fe; }
+        .text-brand-yellow { color: #fadf0a; }
+        .text-brand-green { color: #98de6c; }
+        .border-brand-primary { border-color: #afa5fe; }
+        .hover\:bg-brand-primary:hover { background-color: #afa5fe; }
+    </style>
+</head>
+<>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // Writer questions base (61 questions, 162 total weight)
+        const WRITER_QUESTIONS_BASE = [
+            { id: 1, category: "AI Adoption", question: "Does the client have a positive outlook toward AI-assisted research, ideation and editing?", defaultWeight: 2 },
+            { id: 2, category: "Budget & Payment Terms", question: "Is the per-word, per-hour, or per-project rate stated and competitive for your experience level?", defaultWeight: 3 },
+            { id: 3, category: "Budget & Payment Terms", question: "Is the payment schedule clearly defined (upfront, milestones, net 15/30/60 terms)?", defaultWeight: 2 },
+            { id: 4, category: "Budget & Payment Terms", question: "Does the client have a documented or self-reported history of timely payments to freelancers?", defaultWeight: 3 },
+            { id: 5, category: "Budget & Payment Terms", question: "Are penalties for late payment agreed on (typically 1.5-3%)?", defaultWeight: 2 },
+            { id: 6, category: "Budget & Payment Terms", question: "Is there a provision for additional charges if scope changes?", defaultWeight: 2 },
+            { id: 7, category: "Budget & Payment Terms", question: "Are research, interviews, or tool expenses reimbursable?", defaultWeight: 2 },
+            { id: 8, category: "Budget & Payment Terms", question: "Are rush fees or expedited work rates agreed upon?", defaultWeight: 1 },
+            { id: 9, category: "Budget & Payment Terms", question: "Is there clarity on what constitutes additional work requiring extra payment?", defaultWeight: 3 },
+            { id: 10, category: "Budget & Payment Terms", question: "Is the kill fee policy for cancelled projects clearly stated (typically 25-50%)?", defaultWeight: 3 },
+            { id: 11, category: "Budget & Payment Terms", question: "Is their preferred payment method accepted and secure?", defaultWeight: 3 },
+            { id: 12, category: "Client Business & Stability", question: "Does the client's business have a clear revenue stream?", defaultWeight: 3 },
+            { id: 13, category: "Client Business & Stability", question: "Is the client's industry stable and not facing major disruption?", defaultWeight: 3 },
+            { id: 14, category: "Client Experience & Reputation", question: "Does the client have realistic expectations about content ROI and timelines?", defaultWeight: 3 },
+            { id: 15, category: "Client Experience & Reputation", question: "Has the client worked with freelance writers before?", defaultWeight: 2 },
+            { id: 16, category: "Client Experience & Reputation", question: "Can you find any references or testimonials from past writers?", defaultWeight: 1 },
+            { id: 17, category: "Client Experience & Reputation", question: "Does the client avoid dismissive statements about writing, such as \"this should be easy\"?", defaultWeight: 3 },
+            { id: 18, category: "Client Experience & Reputation", question: "Has the client avoided asking for free samples?", defaultWeight: 2 },
+            { id: 19, category: "Communication & Collaboration", question: "Does the client communicate clearly and professionally in initial interactions?", defaultWeight: 3 },
+            { id: 20, category: "Communication & Collaboration", question: "Are communication channels and frequency expectations clear?", defaultWeight: 3 },
+            { id: 21, category: "Communication & Collaboration", question: "Does the client respect your working hours and boundaries?", defaultWeight: 3 },
+            { id: 22, category: "Communication & Collaboration", question: "Is the client open to feedback?", defaultWeight: 2 },
+            { id: 23, category: "Communication & Collaboration", question: "Does the client allow autonomy and trust in your expertise?", defaultWeight: 2 },
+            { id: 24, category: "Communication & Collaboration", question: "Is there a single point of contact to avoid conflicting feedback from multiple stakeholders?", defaultWeight: 3 },
+            { id: 25, category: "Communication & Collaboration", question: "Is the client open to new ideas and not fixed on their own approach?", defaultWeight: 3 },
+            { id: 26, category: "Content Requirements & Strategy", question: "Are deliverables and formats explicitly stated?", defaultWeight: 3 },
+            { id: 27, category: "Content Requirements & Strategy", question: "Can the client articulate their content strategy and how writing fits into business goals?", defaultWeight: 3 },
+            { id: 28, category: "Content Requirements & Strategy", question: "Has the client explained their target audience and messaging clearly?", defaultWeight: 3 },
+            { id: 29, category: "Content Requirements & Strategy", question: "Are search optimization goals clearly specified?", defaultWeight: 3 },
+            { id: 30, category: "Contract & Legal", question: "Are your responsibilities clearly defined?", defaultWeight: 3 },
+            { id: 31, category: "Contract & Legal", question: "Can you retain samples for portfolio use?", defaultWeight: 2 },
+            { id: 32, category: "Contract & Legal", question: "Are there safeguards against non-payment (contracts, deposits, etc.)?", defaultWeight: 3 },
+            { id: 33, category: "Contract & Legal", question: "Does the contract include detailed scope of work to prevent scope creep?", defaultWeight: 3 },
+            { id: 34, category: "Contract & Legal", question: "Are termination terms and notice periods clearly defined?", defaultWeight: 2 },
+            { id: 35, category: "Contract & Legal", question: "Are byline rights clearly specified?", defaultWeight: 1 },
+            { id: 36, category: "Contract & Legal", question: "Are confidentiality and non-disclosure terms appropriate and reasonable?", defaultWeight: 3 },
+            { id: 37, category: "Contract & Legal", question: "Are liability protections and indemnity terms specified?", defaultWeight: 3 },
+            { id: 38, category: "Editorial Process & Workflow", question: "Is the main editorial contact identified and authorized to make decisions?", defaultWeight: 1 },
+            { id: 39, category: "Editorial Process & Workflow", question: "Are revision rounds and feedback cycles clearly agreed upon?", defaultWeight: 3 },
+            { id: 40, category: "Editorial Process & Workflow", question: "Are content approval deadlines realistic?", defaultWeight: 3 },
+            { id: 41, category: "Industry & Niche Alignment", question: "Does the client's content niche fit your expertise and career goals?", defaultWeight: 3 },
+            { id: 42, category: "Industry & Niche Alignment", question: "Are there no ethical concerns with the client's industry or business practices?", defaultWeight: 3 },
+            { id: 43, category: "Industry & Niche Alignment", question: "Does the client's brand align with your personal and professional values?", defaultWeight: 3 },
+            { id: 44, category: "Long-Term Partnership", question: "Is there potential for ongoing content work or retainer agreements?", defaultWeight: 3 },
+            { id: 45, category: "Long-Term Partnership", question: "Are there opportunities to upsell or take on additional content types?", defaultWeight: 3 },
+            { id: 46, category: "Project Management & Tools", question: "Does the client provide necessary research tools and subscriptions?", defaultWeight: 3 },
+            { id: 47, category: "Project Management & Tools", question: "Is interview access and source coordination supported when needed?", defaultWeight: 3 },
+            { id: 48, category: "Red Flags & Warning Signs", question: "Has the client avoided ghosting or disappearing during initial communications?", defaultWeight: 3 },
+            { id: 49, category: "Red Flags & Warning Signs", question: "Does the client avoid suggesting \"exposure\" or \"great for your portfolio\" as payment?", defaultWeight: 3 },
+            { id: 50, category: "Red Flags & Warning Signs", question: "Does the client avoid requesting unnecessary CV/resume when your portfolio suffices?", defaultWeight: 3 },
+            { id: 51, category: "Risk Assessment", question: "Are there safeguards against non-payment (contracts, deposits, etc.)?", defaultWeight: 3 },
+            { id: 52, category: "Risk Assessment", question: "Can you verify the client's legitimacy through their website, LinkedIn, or references?", defaultWeight: 3 },
+            { id: 53, category: "Risk Assessment", question: "Are there no unusual personal or professional requirements that seem inappropriate?", defaultWeight: 3 },
+            { id: 54, category: "Your Capability & Availability", question: "Are working hours flexible or aligned with your schedule?", defaultWeight: 2 },
+            { id: 55, category: "Your Capability & Availability", question: "Does the client's brand align with your personal and professional values?", defaultWeight: 3 },
+            { id: 56, category: "Your Capability & Availability", question: "Do you have the skills and experience required to deliver quality work?", defaultWeight: 2 },
+            { id: 57, category: "Your Capability & Availability", question: "Does the project align with your professional development goals?", defaultWeight: 3 },
+            { id: 58, category: "Your Capability & Availability", question: "Does your current workload allow taking on this project without compromising quality?", defaultWeight: 3 },
+            { id: 59, category: "Your Capability & Availability", question: "Do you trust yourself to deliver quality work on time consistently?", defaultWeight: 3 },
+            { id: 60, category: "Your Capability & Availability", question: "Do you have access to all tools and resources needed to complete the work?", defaultWeight: 3 },
+            { id: 61, category: "Your Capability & Availability", question: "Are you excited about and interested in the subject matter?", defaultWeight: 3 }
+        ];
+
+        // Marketer questions base (76 questions)
+        const MARKETER_QUESTIONS_BASE = [
+            { id: 101, category: "AI Adoption", question: "Is the client open to using AI tools for time-saving usecases like data analysis?", defaultWeight: 3 },
+            { id: 102, category: "AI Adoption", question: "Is the client open to using AI for content ideation?", defaultWeight: 2 },
+            { id: 103, category: "Budget & Payment", question: "Are campaign budgets separate from consulting fees?", defaultWeight: 2 },
+            { id: 104, category: "Budget & Payment", question: "Are performance bonuses or incentive structures discussed?", defaultWeight: 1 },
+            { id: 105, category: "Budget & Payment", question: "Does the client understand fractional marketing costs versus full-time employee costs?", defaultWeight: 2 },
+            { id: 106, category: "Budget & Payment", question: "Is there flexibility to adjust budgets based on campaign performance and results?", defaultWeight: 2 },
+            { id: 107, category: "Budget & Payment", question: "Is responsibility for vendor payments and approvals clearly assigned?", defaultWeight: 3 },
+            { id: 108, category: "Budget & Payment", question: "Are the retainer or project fees clearly stated and fair?", defaultWeight: 3 },
+            { id: 109, category: "Communication & Collaboration", question: "Is there a formal onboarding process for new marketing partners?", defaultWeight: 2 },
+            { id: 110, category: "Communication & Collaboration", question: "Will you have access to internal training materials and knowledge bases?", defaultWeight: 2 },
+            { id: 111, category: "Communication & Collaboration", question: "Has the client worked with fractional marketers or consultants before?", defaultWeight: 1 },
+            { id: 112, category: "Communication & Collaboration", question: "Does the client report having positive experiences with past marketing partners?", defaultWeight: 3 },
+            { id: 113, category: "Communication & Collaboration", question: "Does the client have a history of maintaining long-term relationships with freelancers or agencies?", defaultWeight: 3 },
+            { id: 114, category: "Communication & Collaboration", question: "Is the client open to new ideas and not fixed on their own approach?", defaultWeight: 3 },
+            { id: 115, category: "Communication & Collaboration", question: "Are communication channels, meeting schedules, and reporting formats agreed upon?", defaultWeight: 3 },
+            { id: 116, category: "Communication & Collaboration", question: "Does the client respond promptly and maintain regular contact?", defaultWeight: 3 },
+            { id: 117, category: "Communication & Collaboration", question: "Are the client's project deadlines realistic and achievable?", defaultWeight: 3 },
+            { id: 118, category: "Communication & Collaboration", question: "Does the client communicate clearly and professionally in initial interactions?", defaultWeight: 3 },
+            { id: 119, category: "Communication & Collaboration", question: "Does the client allow autonomy and trust in your expertise?", defaultWeight: 3 },
+            { id: 120, category: "Compliance & Regulations", question: "Do they operate in industries you meet compliance requirements in (e.g., finance, health)?", defaultWeight: 3 },
+            { id: 121, category: "Compliance & Regulations", question: "Are there no ethical concerns with the client's industry or business practices?", defaultWeight: 3 },
+            { id: 122, category: "Compliance & Regulations", question: "Are there no tax, legal, or regulatory barriers that would prevent working with them?", defaultWeight: 3 },
+            { id: 123, category: "Contract & Legal", question: "Will a formal contract be signed covering scope, payment terms and IP?", defaultWeight: 3 },
+            { id: 124, category: "Contract & Legal", question: "Will the client allow you to use their work in your portfolio?", defaultWeight: 3 },
+            { id: 125, category: "Contract & Legal", question: "Are confidentiality and non-disclosure terms appropriate and reasonable?", defaultWeight: 2 },
+            { id: 126, category: "Contract & Legal", question: "Are terms for early termination, pauses, or cancellations clearly defined?", defaultWeight: 3 },
+            { id: 127, category: "Contract & Legal", question: "Are liability protections and indemnity terms specified?", defaultWeight: 3 },
+            { id: 128, category: "Contract & Legal", question: "Are your responsibilities clearly defined?", defaultWeight: 3 },
+            { id: 129, category: "Content Marketing Experience", question: "Does the client understand content marketing and its roles?", defaultWeight: 3 },
+            { id: 130, category: "Content Marketing Experience", question: "Does the client have a documented content marketing strategy?", defaultWeight: 1 },
+            { id: 131, category: "Content Marketing Experience", question: "Does the client understand search and social optimization?", defaultWeight: 3 },
+            { id: 132, category: "Content Marketing Experience", question: "Has the client identified key competitors and their positioning?", defaultWeight: 2 },
+            { id: 133, category: "Content Marketing Experience", question: "Are preferred content distribution channels and platforms clearly specified?", defaultWeight: 3 },
+            { id: 134, category: "Long-Term Partnership", question: "Are you aligned on marketing philosophies or visions?", defaultWeight: 3 },
+            { id: 135, category: "Long-Term Partnership", question: "Is there potential to expand engagement or increase scope?", defaultWeight: 3 },
+            { id: 136, category: "Marketing KPIs & Reporting", question: "Are marketing KPIs, timelines and expectations clearly defined?", defaultWeight: 2 },
+            { id: 137, category: "Marketing KPIs & Reporting", question: "Are these expectations realistic given budget, resources and timelines?", defaultWeight: 3 },
+            { id: 138, category: "Marketing KPIs & Reporting", question: "Is the process for approving campaigns, budgets, and tests clearly documented?", defaultWeight: 2 },
+            { id: 139, category: "Marketing Strategy & Objectives", question: "Are marketing budgets and spending priorities clearly defined?", defaultWeight: 3 },
+            { id: 140, category: "Marketing Strategy & Objectives", question: "Are marketing goals specific and measurable?", defaultWeight: 3 },
+            { id: 141, category: "Marketing Strategy & Objectives", question: "Are marketing goals aligned with overall business objectives?", defaultWeight: 3 },
+            { id: 142, category: "Marketing Strategy & Objectives", question: "Are marketing challenges or pain points identified?", defaultWeight: 2 },
+            { id: 143, category: "Marketing Strategy & Objectives", question: "Does the client allow for unique yet strategic marketing recommendations and testing?", defaultWeight: 2 },
+            { id: 144, category: "Marketing Strategy & Objectives", question: "Does the client have paying customers and a validated product or service?", defaultWeight: 3 },
+            { id: 145, category: "Marketing Strategy & Objectives", question: "Does the client provide past marketing data or campaign results?", defaultWeight: 2 },
+            { id: 146, category: "Marketing Strategy & Objectives", question: "Has the client documented their target market and ideal customer profile?", defaultWeight: 3 },
+            { id: 147, category: "Marketing Strategy & Objectives", question: "Does the client provide hands-on access to their product or service?", defaultWeight: 3 },
+            { id: 148, category: "Marketing Strategy & Objectives", question: "Can the client provide testimonials or documented case studies?", defaultWeight: 3 },
+            { id: 149, category: "Marketing Strategy & Objectives", question: "Does the client actively collect and use customer feedback to inform marketing?", defaultWeight: 3 },
+            { id: 150, category: "Resource Availability", question: "Will the client provide necessary resources (content, access, personnel) on time?", defaultWeight: 3 },
+            { id: 151, category: "Risk Assessment", question: "Are there safeguards against non-payment (contracts, deposits, etc.)?", defaultWeight: 3 },
+            { id: 152, category: "Risk Assessment", question: "Does the client avoid requesting free audits or unpaid work?", defaultWeight: 3 },
+            { id: 153, category: "Risk Assessment", question: "Does the client communicate honestly and clearly?", defaultWeight: 3 },
+            { id: 154, category: "Risk Assessment", question: "Does the client respect your time, boundaries, working hours and processes?", defaultWeight: 3 },
+            { id: 155, category: "Risk Assessment", question: "Does the client understand marketing requires time and testing?", defaultWeight: 3 },
+            { id: 156, category: "Risk Assessment", question: "Is the client transparent about budgets, constraints, and expectations?", defaultWeight: 3 },
+            { id: 157, category: "Risk Assessment", question: "Does the client avoid suggesting \"exposure\" or \"great for your portfolio\" as payment?", defaultWeight: 3 },
+            { id: 158, category: "Risk Assessment", question: "Can you verify the client's legitimacy through their website, LinkedIn, or references?", defaultWeight: 3 },
+            { id: 159, category: "Risk Assessment", question: "Does the client avoid requesting unnecessary CV/resume when your portfolio suffices?", defaultWeight: 3 },
+            { id: 160, category: "Risk Assessment", question: "Are there no unusual personal or professional requirements that seem inappropriate?", defaultWeight: 3 },
+            { id: 161, category: "Team & Stakeholders", question: "Are all marketing stakeholders and roles clearly documented?", defaultWeight: 2 },
+            { id: 162, category: "Team & Stakeholders", question: "Are all decision-makers involved and aligned with the marketing strategy and priorities?", defaultWeight: 3 },
+            { id: 163, category: "Team & Stakeholders", question: "Is the primary marketing contact identified and authorized to make decisions?", defaultWeight: 3 },
+            { id: 164, category: "Team & Stakeholders", question: "Does the founder or leadership team actively create and share content?", defaultWeight: 2 },
+            { id: 165, category: "Team & Stakeholders", question: "If not, is there willingness to participate in content marketing efforts?", defaultWeight: 3 },
+            { id: 166, category: "Team & Stakeholders", question: "Are cross-team collaboration needs (e.g., sales, product) identified?", defaultWeight: 2 },
+            { id: 167, category: "Team & Stakeholders", question: "Is the internal marketing team's capacity and skills documented?", defaultWeight: 1 },
+            { id: 168, category: "Team & Stakeholders", question: "If the team is lean, are there plans to hire freelancers or an agency to assist with strategy execution?", defaultWeight: 3 },
+            { id: 169, category: "Technology & Data Access", question: "Will you have access to all necessary marketing tools and platforms?", defaultWeight: 3 },
+            { id: 170, category: "Technology & Data Access", question: "Are software licenses and subscriptions provided or reimbursed?", defaultWeight: 3 },
+            { id: 171, category: "Your Capability & Availability", question: "Are working hours flexible or aligned with your schedule?", defaultWeight: 1 },
+            { id: 172, category: "Your Capability & Availability", question: "Does your current workload allow taking on this project without compromising quality?", defaultWeight: 3 },
+            { id: 173, category: "Your Capability & Availability", question: "Does the project align with your professional development goals?", defaultWeight: 2 },
+            { id: 174, category: "Your Capability & Availability", question: "Does the client's brand align with your personal and professional values?", defaultWeight: 2 },
+            { id: 175, category: "Your Capability & Availability", question: "Are you excited about and interested in the subject matter?", defaultWeight: 1 },
+            { id: 176, category: "Your Capability & Availability", question: "Do you have the skills and experience required to deliver quality work?", defaultWeight: 3 }
+        ];
+
+        function App() {
+            const [step, setStep] = useState('start');
+            const [clientName, setClientName] = useState('');
+            const [role, setRole] = useState('');
+            const [answers, setAnswers] = useState({});
+            const [customWeights, setCustomWeights] = useState({});
+            const [quickMode, setQuickMode] = useState(false);
+            const [hiddenCategories, setHiddenCategories] = useState(new Set());
+            const [showWeightEditor, setShowWeightEditor] = useState(false);
+
+            // Load saved data from localStorage
+            useEffect(() => {
+                const saved = localStorage.getItem('clientVetting');
+                if (saved) {
+                    try {
+                        const data = JSON.parse(saved);
+                        if (data.clientName) setClientName(data.clientName);
+                        if (data.role) setRole(data.role);
+                        if (data.answers) setAnswers(data.answers);
+                        if (data.customWeights) setCustomWeights(data.customWeights);
+                    } catch (e) {
+                        console.error('Error loading saved data', e);
+                    }
+                }
+            }, []);
+
+            // Save to localStorage whenever data changes
+            useEffect(() => {
+                if (clientName || role || Object.keys(answers).length > 0) {
+                    localStorage.setItem('clientVetting', JSON.stringify({
+                        clientName,
+                        role,
+                        answers,
+                        customWeights
+                    }));
+                }
+            }, [clientName, role, answers, customWeights]);
+
+            const questionsBase = role === 'writer' ? WRITER_QUESTIONS_BASE : MARKETER_QUESTIONS_BASE;
+            const questions = questionsBase.map(q => ({
+                ...q,
+                weight: customWeights[q.id] !== undefined ? customWeights[q.id] : q.defaultWeight
+            }));
+
+            const filteredQuestions = quickMode 
+                ? questions.filter(q => q.weight === 3)
+                : questions;
+
+            const totalWeight = filteredQuestions.reduce((sum, q) => sum + q.weight, 0);
+
+            const handleStart = (e) => {
+                e.preventDefault();
+                if (role) {
+                    setStep('checklist');
+                }
+            };
+
+            const handleAnswerChange = (questionId, value) => {
+                setAnswers(prev => ({
+                    ...prev,
+                    [questionId]: value
+                }));
+            };
+
+            const handleWeightChange = (questionId, newWeight) => {
+                setCustomWeights(prev => ({
+                    ...prev,
+                    [questionId]: parseInt(newWeight)
+                }));
+            };
+
+            const resetWeights = () => {
+                setCustomWeights({});
+                localStorage.removeItem('customWeights');
+            };
+
+            const toggleCategory = (category) => {
+                setHiddenCategories(prev => {
+                    const newSet = new Set(prev);
+                    if (newSet.has(category)) {
+                        newSet.delete(category);
+                    } else {
+                        newSet.add(category);
+                    }
+                    return newSet;
+                });
+            };
+
+            const calculateScore = () => {
+                let earnedWeight = 0;
+                filteredQuestions.forEach(q => {
+                    if (answers[q.id] === true) {
+                        earnedWeight += q.weight;
+                    }
+                });
+                return (earnedWeight / totalWeight) * 100;
+            };
+
+            const getScoreInterpretation = (score) => {
+                if (score <= 59) return {
+                    label: "High risk",
+                    message: "Significant concerns. Renegotiate terms or decline.",
+                    color: "text-red-600",
+                    bgColor: "bg-red-50",
+                    borderColor: "border-red-300"
+                };
+                if (score <= 69) return {
+                    label: "Moderate fit",
+                    message: "Proceed only after addressing non-negotiables.",
+                    color: "text-orange-600",
+                    bgColor: "bg-orange-50",
+                    borderColor: "border-orange-300"
+                };
+                if (score <= 79) return {
+                    label: "Good fit",
+                    message: "Only minor adjustments needed before committing.",
+                    color: "text-yellow-600",
+                    bgColor: "bg-yellow-50",
+                    borderColor: "border-yellow-300"
+                };
+                if (score <= 89) return {
+                    label: "Strong fit",
+                    message: "Almost perfect.",
+                    color: "text-brand-primary",
+                    bgColor: "bg-purple-50",
+                    borderColor: "border-purple-300"
+                };
+                return {
+                    label: "Excellent fit",
+                    message: "Proceed with confidence!",
+                    color: "text-green-600",
+                    bgColor: "bg-green-50",
+                    borderColor: "border-green-300"
+                };
+            };
+
+            const handleSubmit = () => {
+                setStep('results');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            };
+
+            const handleBackToEdit = () => {
+                setStep('checklist');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            };
+
+            const handleRestart = () => {
+                if (confirm('Start fresh? This will clear all answers.')) {
+                    setStep('start');
+                    setClientName('');
+                    setRole('');
+                    setAnswers({});
+                    setCustomWeights({});
+                    setQuickMode(false);
+                    setHiddenCategories(new Set());
+                    localStorage.removeItem('clientVetting');
+                }
+            };
+
+            const downloadPDF = () => {
+                const score = calculateScore();
+                const interpretation = getScoreInterpretation(score);
+                
+                alert('PDF download feature requires jsPDF library. For now, use the Print button (Ctrl+P) and save as PDF!');
+                window.print();
+            };
+
+            const shareToLinkedIn = () => {
+                const score = calculateScore().toFixed(1);
+                const interpretation = getScoreInterpretation(score);
+                const text = `Just vetted a potential client using TheMinCave's checklist. Score: ${score}% 🎯 ${interpretation.label}`;
+                const url = `https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(text)}`;
+                window.open(url, '_blank', 'width=600,height=600');
+            };
+
+            const shareToX = () => {
+                const score = calculateScore().toFixed(1);
+                const interpretation = getScoreInterpretation(score);
+                const text = `Just vetted a potential client using TheMinCave's checklist. Score: ${score}% 🎯 ${interpretation.label}`;
+                const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+                window.open(url, '_blank', 'width=600,height=400');
+            };
+
+            const categorizedQuestions = filteredQuestions.reduce((acc, question) => {
+                if (!acc[question.category]) {
+                    acc[question.category] = [];
+                }
+                acc[question.category].push(question);
+                return acc;
+            }, {});
+
+            const categories = Object.keys(categorizedQuestions).sort();
+            const answeredCount = filteredQuestions.filter(q => answers[q.id] !== undefined).length;
+            const progress = (answeredCount / filteredQuestions.length) * 100;
+
+            // START SCREEN
+            if (step === 'start') {
+                const hasSavedData = localStorage.getItem('clientVetting');
+                
+                return (
+                    <div className="min-h-screen flex items-center justify-center p-4 bg-white">
+                        <div className="max-w-md w-full bg-white rounded-xl shadow-xl p-8 border border-gray-200">
+                            <div className="text-center mb-8">
+                                <h1 className="text-3xl font-bold text-gray-900 mb-2">Client Pre-Vetting Checklist</h1>
+                                <p className="text-lg font-semibold mb-1" style={{color: '#afa5fe'}}>TheMinCave</p>
+                                <p className="text-xs text-gray-500">Vet clients systematically to make better decisions</p>
+                            </div>
+                            
+                            {hasSavedData && (
+                                <div className="mb-6 p-4 bg-brand-green bg-opacity-20 rounded-lg border-2 border-brand-green">
+                                    <p className="text-sm font-semibold text-gray-800 mb-2">📋 Resume your progress?</p>
+                                    <button
+                                        onClick={() => setStep('checklist')}
+                                        className="text-sm text-gray-700 underline"
+                                    >
+                                        Continue where you left off
+                                    </button>
+                                </div>
+                            )}
+
+                            <form onSubmit={handleStart} className="space-y-6">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Client Name (Optional)
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={clientName}
+                                        onChange={(e) => setClientName(e.target.value)}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                        placeholder="Enter client or company name"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                                        I am a... *
+                                    </label>
+                                    <div className="space-y-2">
+                                        <label className="flex items-center p-3 border-2 rounded-lg cursor-pointer hover:bg-gray-50 transition"
+                                               style={{ borderColor: role === 'writer' ? '#afa5fe' : '#e5e7eb' }}>
+                                            <input
+                                                type="radio"
+                                                name="role"
+                                                value="writer"
+                                                checked={role === 'writer'}
+                                                onChange={(e) => setRole(e.target.value)}
+                                                className="h-4 w-4"
+                                                style={{accentColor: '#afa5fe'}}
+                                            />
+                                            <span className="ml-3 text-gray-900">Freelance Writer</span>
+                                        </label>
+                                        <label className="flex items-center p-3 border-2 rounded-lg cursor-pointer hover:bg-gray-50 transition"
+                                               style={{ borderColor: role === 'marketer' ? '#afa5fe' : '#e5e7eb' }}>
+                                            <input
+                                                type="radio"
+                                                name="role"
+                                                value="marketer"
+                                                checked={role === 'marketer'}
+                                                onChange={(e) => setRole(e.target.value)}
+                                                className="h-4 w-4"
+                                                style={{accentColor: '#afa5fe'}}
+                                            />
+                                            <span className="ml-3 text-gray-900">Marketer / Consultant</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <button
+                                    type="submit"
+                                    disabled={!role}
+                                    className="w-full text-white py-3 px-6 rounded-lg font-semibold hover:opacity-90 disabled:bg-gray-300 disabled:cursor-not-allowed transition duration-200"
+                                    style={{backgroundColor: role ? '#afa5fe' : undefined}}
+                                >
+                                    Start Vetting Process
+                                </button>
+                            </form>
+
+                            <div className="mt-6 p-4 rounded-lg border-2" style={{backgroundColor: '#afa5fe20', borderColor: '#afa5fe'}}>
+                                <p className="text-sm text-gray-700">
+                                    <strong style={{color: '#afa5fe'}}>What you'll do:</strong> Answer questions about your potential client. 
+                                    Get an instant vetting score to help you decide if this client is a good fit.
+                                </p>
+                                <p className="text-xs text-gray-600 mt-2">
+                                    ✨ New: Adjust weights, save progress, quick mode, and more!
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            // RESULTS SCREEN
+            if (step === 'results') {
+                const score = calculateScore();
+                const interpretation = getScoreInterpretation(score);
+
+                return (
+                    <div className="min-h-screen bg-white py-12 px-4">
+                        <div className="max-w-4xl mx-auto">
+                            <div className="bg-white rounded-xl shadow-xl p-8">
+                                <div className="no-print flex justify-between items-start mb-6">
+                                    <button
+                                        onClick={handleBackToEdit}
+                                        className="text-gray-600 hover:text-gray-900 flex items-center"
+                                    >
+                                        ← Back to Edit
+                                    </button>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={shareToLinkedIn}
+                                            className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700"
+                                        >
+                                            Share on LinkedIn
+                                        </button>
+                                        <button
+                                            onClick={shareToX}
+                                            className="px-4 py-2 bg-black text-white rounded-lg text-sm hover:bg-gray-800"
+                                        >
+                                            Share on X
+                                        </button>
+                                        <button
+                                            onClick={() => window.print()}
+                                            className="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
+                                        >
+                                            Print / PDF
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="text-center mb-2">
+                                    <div className="flex items-center justify-center gap-2 mb-2">
+                                        <h1 className="text-3xl font-bold text-gray-900">Your Vetting Results</h1>
+                                        <span className="text-xs font-semibold px-2 py-1 rounded" style={{backgroundColor: '#afa5fe', color: 'white'}}>
+                                            TheMinCave
+                                        </span>
+                                    </div>
+                                    {clientName && <p className="text-gray-600 mt-1">Client: <span className="font-semibold">{clientName}</span></p>}
+                                    <p className="text-sm text-gray-500 mt-1">
+                                        {role === 'writer' ? 'Freelance Writer' : 'Marketer / Consultant'} Checklist
+                                        {quickMode && ' (Quick Mode - Critical Only)'}
+                                    </p>
+                                </div>
+
+                                <div className={`border-2 ${interpretation.borderColor} ${interpretation.bgColor} rounded-xl p-8 my-8`}>
+                                    <div className="text-center">
+                                        <div className={`text-6xl font-bold mb-4 ${interpretation.color}`}>
+                                            {score.toFixed(1)}%
+                                        </div>
+                                        <h2 className={`text-2xl font-bold mb-2 ${interpretation.color}`}>
+                                            {interpretation.label}
+                                        </h2>
+                                        <p className="text-lg text-gray-700">
+                                            {interpretation.message}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="mb-8">
+                                    <h3 className="text-xl font-semibold mb-4">Summary</h3>
+                                    <div className="grid grid-cols-3 gap-4">
+                                        <div className="bg-gray-50 p-4 rounded-lg text-center">
+                                            <p className="text-sm text-gray-600">Questions</p>
+                                            <p className="text-2xl font-bold text-gray-900">{filteredQuestions.length}</p>
+                                        </div>
+                                        <div className="bg-gray-50 p-4 rounded-lg text-center">
+                                            <p className="text-sm text-gray-600">Answered</p>
+                                            <p className="text-2xl font-bold text-gray-900">{answeredCount}</p>
+                                        </div>
+                                        <div className="bg-gray-50 p-4 rounded-lg text-center">
+                                            <p className="text-sm text-gray-600">Yes Answers</p>
+                                            <p className="text-2xl font-bold text-gray-900">
+                                                {Object.values(answers).filter(a => a === true).length}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="mb-8 print-break">
+                                    <h3 className="text-xl font-semibold mb-4">Category Breakdown</h3>
+                                    <div className="space-y-3">
+                                        {categories.map(category => {
+                                            const categoryQuestions = categorizedQuestions[category];
+                                            const categoryAnswered = categoryQuestions.filter(q => answers[q.id] === true).length;
+                                            const categoryTotal = categoryQuestions.length;
+                                            const categoryPercent = (categoryAnswered / categoryTotal) * 100;
+
+                                            return (
+                                                <div key={category} className="bg-gray-50 p-4 rounded-lg">
+                                                    <div className="flex justify-between items-center mb-2">
+                                                        <span className="font-medium text-gray-900 text-sm">{category}</span>
+                                                        <span className="text-sm text-gray-600">{categoryAnswered}/{categoryTotal}</span>
+                                                    </div>
+                                                    <div className="w-full bg-gray-200 rounded-full h-2">
+                                                        <div
+                                                            className="h-2 rounded-full transition-all duration-300"
+                                                            style={{ width: `${categoryPercent}%`, backgroundColor: '#afa5fe' }}
+                                                        ></div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                <div className="border-t pt-6 space-y-4 no-print">
+                                    <p className="text-sm text-gray-600">
+                                        <strong>Note:</strong> This checklist is for guidance only. You're ultimately responsible for your own business decisions.
+                                    </p>
+                                    <div className="flex gap-3">
+                                        <button
+                                            onClick={handleBackToEdit}
+                                            className="flex-1 border-2 border-gray-300 text-gray-700 py-3 px-6 rounded-lg font-semibold hover:bg-gray-50 transition duration-200"
+                                        >
+                                            ← Edit Answers
+                                        </button>
+                                        <button
+                                            onClick={handleRestart}
+                                            className="flex-1 text-white py-3 px-6 rounded-lg font-semibold hover:opacity-90 transition duration-200"
+                                            style={{backgroundColor: '#afa5fe'}}
+                                        >
+                                            Vet Another Client
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            // CHECKLIST SCREEN
+            return (
+                <div className="min-h-screen bg-white">
+                    <div className="bg-white shadow-sm sticky top-0 z-10 border-b border-gray-200">
+                        <div className="max-w-4xl mx-auto px-4 py-4">
+                            <div className="flex justify-between items-center mb-3">
+                                <div>
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <h1 className="text-xl font-bold text-gray-900">
+                                            {role === 'writer' ? 'Writer' : 'Marketer'} Vetting Checklist
+                                        </h1>
+                                        <span className="text-xs font-semibold px-2 py-1 rounded" style={{backgroundColor: '#afa5fe', color: 'white'}}>
+                                            TheMinCave
+                                        </span>
+                                    </div>
+                                    {clientName && <p className="text-sm text-gray-600">Client: {clientName}</p>}
+                                </div>
+                                <span className="text-sm text-gray-600">{answeredCount} / {filteredQuestions.length}</span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div
+                                    className="h-2 rounded-full transition-all duration-300"
+                                    style={{ width: `${progress}%`, backgroundColor: '#afa5fe' }}
+                                ></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="max-w-4xl mx-auto px-4 py-8">
+                        {/* Control Panel */}
+                        <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+                            <div className="flex flex-wrap gap-3 items-center">
+                                <button
+                                    onClick={() => setQuickMode(!quickMode)}
+                                    className={`px-4 py-2 rounded-lg font-semibold transition ${quickMode ? 'text-white' : 'bg-gray-100 text-gray-700'}`}
+                                    style={{backgroundColor: quickMode ? '#fadf0a' : undefined, color: quickMode ? '#000' : undefined}}
+                                >
+                                    ⚡ Quick Mode {quickMode ? 'ON' : 'OFF'}
+                                </button>
+                                
+                                <button
+                                    onClick={() => setShowWeightEditor(!showWeightEditor)}
+                                    className="px-4 py-2 bg-gray-100 rounded-lg text-gray-700 font-semibold hover:bg-gray-200"
+                                >
+                                    ⚖️ Adjust Weights
+                                </button>
+
+                                <div className="flex-1"></div>
+
+                                <button
+                                    onClick={() => {
+                                        if (confirm('Clear all answers and start over?')) {
+                                            setAnswers({});
+                                        }
+                                    }}
+                                    className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg text-sm"
+                                >
+                                    Clear All
+                                </button>
+                            </div>
+
+                            {quickMode && (
+                                <div className="mt-4 p-3 rounded-lg" style={{backgroundColor: '#fadf0a30'}}>
+                                    <p className="text-sm text-gray-800">
+                                        <strong>Quick Mode:</strong> Showing only critical questions (weight 3). 
+                                        {filteredQuestions.length} of {questions.length} questions.
+                                    </p>
+                                </div>
+                            )}
+
+                            {showWeightEditor && (
+                                <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                                    <div className="flex justify-between items-center mb-3">
+                                        <h3 className="font-semibold">Adjust Question Weights</h3>
+                                        <button
+                                            onClick={resetWeights}
+                                            className="text-sm text-blue-600 hover:underline"
+                                        >
+                                            Reset to Defaults
+                                        </button>
+                                    </div>
+                                    <p className="text-sm text-gray-600 mb-3">
+                                        Changes are saved automatically. 3 = Critical, 2 = Important, 1 = Nice to have
+                                    </p>
+                                    <div className="max-h-64 overflow-y-auto space-y-2">
+                                        {filteredQuestions.map(q => (
+                                            <div key={q.id} className="flex items-center gap-3 text-sm">
+                                                <select
+                                                    value={q.weight}
+                                                    onChange={(e) => handleWeightChange(q.id, e.target.value)}
+                                                    className="px-2 py-1 border rounded"
+                                                >
+                                                    <option value="3">3</option>
+                                                    <option value="2">2</option>
+                                                    <option value="1">1</option>
+                                                </select>
+                                                <span className="text-gray-700 line-clamp-1">{q.question}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Category Filter Buttons */}
+                        <div className="bg-white rounded-xl shadow-lg p-4 mb-6">
+                            <p className="text-sm font-semibold text-gray-700 mb-3">Filter Categories:</p>
+                            <div className="flex flex-wrap gap-2">
+                                {categories.map(category => {
+                                    const isHidden = hiddenCategories.has(category);
+                                    return (
+                                        <button
+                                            key={category}
+                                            onClick={() => toggleCategory(category)}
+                                            className={`px-3 py-1 rounded-lg text-sm font-medium transition ${isHidden ? 'bg-gray-200 text-gray-500 line-through' : 'text-white'}`}
+                                            style={{backgroundColor: isHidden ? undefined : '#afa5fe'}}
+                                        >
+                                            {category}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Questions */}
+                        <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+                            <div className="mb-6 p-4 rounded-lg border-2" style={{backgroundColor: '#afa5fe20', borderColor: '#afa5fe'}}>
+                                <h2 className="text-lg font-semibold mb-3" style={{color: '#afa5fe'}}>How to Use This Checklist</h2>
+                                <div className="space-y-2 text-sm text-gray-700">
+                                    <p><strong>Weighting Scores:</strong></p>
+                                    <ul className="ml-4 space-y-1">
+                                        <li>• <strong>3 = Very important</strong> — Non-negotiable</li>
+                                        <li>• <strong>2 = Important</strong> — Preferred, but negotiable</li>
+                                        <li>• <strong>1 = Nice to have</strong> — Optional</li>
+                                    </ul>
+                                    <p className="mt-3"><strong>How to Answer:</strong> Tick the box for YES, leave unchecked for NO for each question.</p>
+                                    <p className="mt-3 text-xs italic">
+                                        <strong>Note:</strong> This checklist is for guidance only. Feel free to adjust the questions or weights to fit your needs. 
+                                        You're ultimately responsible for your own business decisions.
+                                    </p>
+                                </div>
+                            </div>
+
+                            {categories.map((category, idx) => {
+                                if (hiddenCategories.has(category)) return null;
+                                
+                                return (
+                                    <div key={category} className={`category-section ${idx > 0 ? 'mt-8 pt-8 border-t border-gray-200' : ''}`}>
+                                        <h3 className="text-xl font-bold text-gray-900 mb-4">{category}</h3>
+                                        <div className="space-y-3">
+                                            {categorizedQuestions[category].map(question => (
+                                                <div key={question.id} 
+                                                     className="flex items-start space-x-3 p-4 bg-gray-50 rounded-lg hover:bg-purple-50 transition cursor-pointer"
+                                                     onClick={() => handleAnswerChange(question.id, !answers[question.id])}>
+                                                    <input
+                                                        type="checkbox"
+                                                        id={`q-${question.id}`}
+                                                        checked={answers[question.id] === true}
+                                                        onChange={(e) => {
+                                                            e.stopPropagation();
+                                                            handleAnswerChange(question.id, e.target.checked);
+                                                        }}
+                                                        className="mt-1 h-5 w-5 rounded focus:ring-2 cursor-pointer"
+                                                        style={{accentColor: '#afa5fe'}}
+                                                    />
+                                                    <label htmlFor={`q-${question.id}`} className="flex-1 cursor-pointer">
+                                                        <span className="text-gray-900">{question.question}</span>
+                                                        <span className="ml-2 text-xs font-semibold px-2 py-0.5 rounded bg-gray-200 text-gray-700">
+                                                            Weight: {question.weight}
+                                                        </span>
+                                                    </label>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        <div className="sticky bottom-4">
+                            <button
+                                onClick={handleSubmit}
+                                className="w-full text-white py-4 px-6 rounded-lg font-semibold hover:opacity-90 transition duration-200 shadow-lg"
+                                style={{backgroundColor: '#afa5fe'}}
+                            >
+                                Calculate Vetting Score ({answeredCount}/{filteredQuestions.length} answered)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
