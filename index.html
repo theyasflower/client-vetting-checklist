@@ -195,7 +195,6 @@
             const [role, setRole] = useState('');
             const [answers, setAnswers] = useState({});
             const [customWeights, setCustomWeights] = useState({});
-            const [quickMode, setQuickMode] = useState(false);
             const [hiddenCategories, setHiddenCategories] = useState(new Set());
             const [showWeightEditor, setShowWeightEditor] = useState(false);
 
@@ -233,9 +232,11 @@
                 weight: customWeights[q.id] !== undefined ? customWeights[q.id] : q.defaultWeight
             }));
 
-            const filteredQuestions = quickMode 
-                ? questions.filter(q => q.weight === 3)
-                : questions;
+            const filteredQuestions = questions.filter(q => {
+    // Filter by hidden categories
+    if (hiddenCategories.has(q.category)) return false;
+    return true;
+});
 
             const totalWeight = filteredQuestions.reduce((sum, q) => sum + q.weight, 0);
 
@@ -342,7 +343,7 @@
                     setRole('');
                     setAnswers({});
                     setCustomWeights({});
-                    setQuickMode(false);
+            
                     setHiddenCategories(new Set());
                     localStorage.removeItem('clientVetting');
                 }
@@ -392,7 +393,7 @@
                 const hasSavedData = localStorage.getItem('clientVetting');
                 
                 return (
-                    <div className="min-h-screen flex items-center justify-center p-4 bg-white">
+                    <div className="min-h-0 flex items-center justify-center p-4 bg-white">
                         <div className="max-w-md w-full bg-white rounded-xl shadow-xl p-8 border border-gray-200">
                             <div className="text-center mb-8">
                                 <h1 className="text-3xl font-bold text-gray-900 mb-2">Client Pre-Vetting Checklist</h1>
@@ -455,7 +456,7 @@
                                                 className="h-4 w-4"
                                                 style={{accentColor: '#afa5fe'}}
                                             />
-                                            <span className="ml-3 text-gray-900">Marketer / Consultant</span>
+                                            <span className="ml-3 text-gray-900">Freelance Content Marketer / Consultant</span>
                                         </label>
                                     </div>
                                 </div>
@@ -490,7 +491,7 @@
                 const interpretation = getScoreInterpretation(score);
 
                 return (
-                    <div className="min-h-screen bg-white py-12 px-4">
+                    <div className="min-h-0 bg-white py-12 px-4">
                         <div className="max-w-4xl mx-auto">
                             <div className="bg-white rounded-xl shadow-xl p-8">
                                 <div className="no-print flex justify-between items-start mb-6">
@@ -531,8 +532,8 @@
                                     </div>
                                     {clientName && <p className="text-gray-600 mt-1">Client: <span className="font-semibold">{clientName}</span></p>}
                                     <p className="text-sm text-gray-500 mt-1">
-                                        {role === 'writer' ? 'Freelance Writer' : 'Marketer / Consultant'} Checklist
-                                        {quickMode && ' (Quick Mode - Critical Only)'}
+                                        {role === 'writer' ? 'Freelance Writer' : 'Freelance Content Marketer / Consultant'} Checklist
+                                
                                     </p>
                                 </div>
 
@@ -625,7 +626,7 @@
 
             // CHECKLIST SCREEN
             return (
-                <div className="min-h-screen bg-white">
+                <div className="min-h-0 bg-white">
                     <div className="bg-white shadow-sm sticky top-0 z-10 border-b border-gray-200">
                         <div className="max-w-4xl mx-auto px-4 py-4">
                             <div className="flex justify-between items-center mb-3">
@@ -655,13 +656,7 @@
                         {/* Control Panel */}
                         <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
                             <div className="flex flex-wrap gap-3 items-center">
-                                <button
-                                    onClick={() => setQuickMode(!quickMode)}
-                                    className={`px-4 py-2 rounded-lg font-semibold transition ${quickMode ? 'text-white' : 'bg-gray-100 text-gray-700'}`}
-                                    style={{backgroundColor: quickMode ? '#fadf0a' : undefined, color: quickMode ? '#000' : undefined}}
-                                >
-                                    ⚡ Quick Mode {quickMode ? 'ON' : 'OFF'}
-                                </button>
+                        
                                 
                                 <button
                                     onClick={() => setShowWeightEditor(!showWeightEditor)}
@@ -684,14 +679,7 @@
                                 </button>
                             </div>
 
-                            {quickMode && (
-                                <div className="mt-4 mb-4 p-4 rounded-lg" style={{backgroundColor: '#fadf0a30'}}>
-                                    <p className="text-sm text-gray-800">
-                                        <br><strong>Quick Mode:</strong> Showing only critical questions (weight 3).</br> 
-                                       <br>{filteredQuestions.length} of {questions.length} questions.</br>
-                                    </p>
-                                </div>
-                            )}
+            
 
                             {showWeightEditor && (
                                 <div className="mt-4 p-4 bg-gray-50 rounded-lg">
