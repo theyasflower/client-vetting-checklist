@@ -233,9 +233,13 @@
                 weight: customWeights[q.id] !== undefined ? customWeights[q.id] : q.defaultWeight
             }));
 
-            const filteredQuestions = quickMode 
-                ? questions.filter(q => q.weight === 3)
-                : questions;
+            const filteredQuestions = questions.filter(q => {
+                  // Filter by hidden categories
+                  if (hiddenCategories.has(q.category)) return false;
+                   // Filter by quick mode
+                   if (quickMode && q.weight !== 3) return false;
+                  return true;
+            });
 
             const totalWeight = filteredQuestions.reduce((sum, q) => sum + q.weight, 0);
 
