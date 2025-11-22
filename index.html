@@ -660,24 +660,26 @@ https://themincave.com/tools/Prospect-Fit-Scorecard`;
                                 </div>
 
                                 <div className="mb-8">
-                                    <h3 className="text-xl font-semibold mb-4">Summary</h3>
-                                    <div className="grid grid-cols-3 gap-4">
-                                        <div className="bg-gray-50 p-4 text-center border-2 border-black" style={{borderRadius: '16px'}}>
-                                            <p className="text-sm text-gray-600 font-semibold">Questions</p>
-                                            <p className="text-2xl font-bold text-gray-900">{filteredQuestions.length}</p>
-                                        </div>
-                                        <div className="bg-gray-50 p-4 text-center border-2 border-black" style={{borderRadius: '16px'}}>
-                                            <p className="text-sm text-gray-600 font-semibold">Answered</p>
-                                            <p className="text-2xl font-bold text-gray-900">{answeredCount}</p>
-                                        </div>
-                                        <div className="bg-gray-50 p-4 text-center border-2 border-black" style={{borderRadius: '16px'}}>
-                                            <p className="text-sm text-gray-600 font-semibold">Yes Answers</p>
-                                            <p className="text-2xl font-bold text-gray-900">
-                                                {filteredQuestions.filter(q => answers[q.id] === true).length}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
+    <h3 className="text-xl font-semibold mb-4">Summary</h3>
+    <div className="grid grid-cols-3 gap-4">
+        <div className="bg-gray-50 p-4 text-center border-2 border-black" style={{borderRadius: '16px'}}>
+            <p className="text-sm text-gray-600 font-semibold">Questions</p>
+            <p className="text-2xl font-bold text-gray-900">{filteredQuestions.length}</p>
+        </div>
+        <div className="bg-gray-50 p-4 text-center border-2 border-black" style={{borderRadius: '16px'}}>
+            <p className="text-sm text-gray-600 font-semibold">Yes Answers</p>
+            <p className="text-2xl font-bold text-gray-900">
+                {filteredQuestions.filter(q => answers[q.id] === true).length}
+            </p>
+        </div>
+        <div className="bg-red-50 p-4 text-center border-2 border-black" style={{borderRadius: '16px'}}>
+            <p className="text-sm text-red-600 font-semibold">🚩 Red Flags</p>
+            <p className="text-2xl font-bold text-red-600">
+                {filteredQuestions.filter(q => q.weight === 3 && answers[q.id] === false).length}
+            </p>
+        </div>
+    </div>
+</div>
 
                                 <div className="mb-10">
                                     <h3 className="text-xl font-semibold mb-4">Share Your Results</h3>
