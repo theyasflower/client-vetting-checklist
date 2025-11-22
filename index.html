@@ -296,7 +296,7 @@
 
             // Load saved data from localStorage
             useEffect(() => {
-                const saved = localStorage.getItem('prospectVetting');
+                const saved = localStorage.getItem('clientVetting');
                 if (saved) {
                     try {
                         const data = JSON.parse(saved);
@@ -313,7 +313,7 @@
             // Save to localStorage whenever data changes
             useEffect(() => {
                 if (prospectName || role || Object.keys(answers).length > 0) {
-                    localStorage.setItem('prospectVetting', JSON.stringify({
+                    localStorage.setItem('clientVetting', JSON.stringify({
                         prospectName,
                         role,
                         answers,
@@ -439,7 +439,7 @@
                     setAnswers({});
                     setCustomWeights({});
                     setHiddenCategories(new Set());
-                    localStorage.removeItem('prospectVetting');
+                    localStorage.removeItem('clientVetting');
                 }
             };
 
@@ -476,7 +476,7 @@
 
             // START SCREEN
             if (step === 'start') {
-                const hasSavedData = localStorage.getItem('prospectVetting');
+                const hasSavedData = localStorage.getItem('clientVetting');
                 
                 return (
                     <div className="min-h-0 flex items-center justify-center p-4 bg-white">
