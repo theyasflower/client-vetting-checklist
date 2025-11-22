@@ -294,6 +294,34 @@
             const [hiddenCategories, setHiddenCategories] = useState(new Set());
             const [showWeightEditor, setShowWeightEditor] = useState(false);
 
+            function AnimatedScore({ score, color }) {
+    const [displayScore, setDisplayScore] = useState(0);
+    
+    useEffect(() => {
+        let start = 0;
+        const end = score;
+        const duration = 2000; // 2 seconds
+        const increment = end / (duration / 16); // 60fps
+        
+        const timer = setInterval(() => {
+            start += increment;
+            if (start >= end) {
+                setDisplayScore(end);
+                clearInterval(timer);
+            } else {
+                setDisplayScore(start);
+            }
+        }, 16);
+        
+        return () => clearInterval(timer);
+    }, [score]);
+    
+    return (
+        <div className={`text-6xl font-bold mb-4 ${color}`}>
+            {displayScore.toFixed(1)}%
+        </div>
+    );
+}
             // Load saved data from localStorage
             useEffect(() => {
                 const saved = localStorage.getItem('clientVetting');
@@ -423,8 +451,10 @@
 
             const handleSubmit = () => {
                 setStep('results');
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            };
+                setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 0);
+};
 
             const handleBackToEdit = () => {
                 setStep('checklist');
@@ -619,9 +649,7 @@ https://themincave.com/tools/Prospect-Fit-Scorecard`;
 
                                 <div className={`border-4 border-black ${interpretation.bgColor} my-8`} style={{borderRadius: '24px', padding: '2rem', boxShadow: '-6px 6px 0px 0px black'}}>
                                     <div className="text-center">
-                                        <div className={`text-6xl font-bold mb-4 ${interpretation.color}`}>
-                                            {score.toFixed(1)}%
-                                        </div>
+                                        <AnimatedScore score={score} color={interpretation.color} />
                                         <h2 className={`text-2xl font-bold mb-2 ${interpretation.color}`}>
                                             {interpretation.label}
                                         </h2>
